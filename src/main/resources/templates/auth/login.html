@@ -9,7 +9,6 @@
 <body>
 <header class="topbar">
   <div class="brand">
-    <span class="brand-badge">f</span>
     <div>
       <div class="brand-text">flow</div>
       <div class="brand-sub">fileExtension</div>
@@ -24,16 +23,16 @@
   <div class="form">
     <h2 style="margin:0;">로그인</h2>
 
-    <div class="error" th:if="${error}" th:text="${error}"></div>
+    <div id="errBox" class="error" style="display:none;"></div>
 
-    <form th:action="@{/auth/login}" th:object="${loginRequest}" method="post">
+    <form id="loginForm" th:object="${loginRequest}">
       <div class="row">
         <div class="label">이메일</div>
-        <input class="input" type="email" th:field="*{email}" placeholder="email@example.com"/>
+        <input class="input" type="email" th:field="*{email}" name="email" placeholder="email@example.com"/>
       </div>
       <div class="row">
         <div class="label">비밀번호</div>
-        <input class="input" type="password" th:field="*{password}" placeholder="비밀번호"/>
+        <input class="input" type="password" th:field="*{password}" name="password" placeholder="비밀번호"/>
       </div>
       <div class="row" style="display:flex; gap:10px; align-items:center;">
         <button class="btn btn-primary" type="submit">로그인</button>
@@ -42,5 +41,35 @@
     </form>
   </div>
 </main>
+
+<script>
+  const form = document.getElementById('loginForm');
+  const errBox = document.getElementById('errBox');
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    errBox.style.display = 'none';
+    errBox.textContent = '';
+
+    const email = form.querySelector('input[name="email"]').value;
+    const password = form.querySelector('input[name="password"]').value;
+
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
+    });
+
+    const json = await res.json();
+
+    if (json.success) {
+      window.location.href = '/';
+      return;
+    }
+
+    errBox.textContent = json?.error?.message || '로그인에 실패했습니다.';
+    errBox.style.display = 'block';
+  });
+</script>
 </body>
 </html>

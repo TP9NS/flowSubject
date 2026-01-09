@@ -25,7 +25,7 @@
     </div>
 
     <form th:if="${loggedIn}" th:action="@{/auth/logout}" method="post">
-      <button class="btn btn-ghost" type="submit">로그아웃</button>
+      <button class="btn btn-ghost" type="button" onclick="logout()">로그아웃</button>
     </form>
   </div>
 </header>
@@ -58,4 +58,13 @@
   </div>
 </main>
 </body>
+<script>
+  async function logout() {
+    const res = await fetch('/api/auth/logout', { method: 'POST' });
+    const json = await res.json();
+    if (json.success) {
+      location.href = '/';
+    }
+  }
+</script>
 </html>

@@ -48,17 +48,47 @@ public class JwtProvider {
                 .compact();
     }
 
+    /** 토큰 유효성 검증 (서명/만료/형식) */
+    public boolean validate(String token) {
+        if (token == null || token.isBlank()) return false;
+        try {
+            parseClaims(token);
+            return true;
+        } catch (JwtException | IllegalArgumentException e) {
+            return false;
+        }
+    }
+
+    /** 토큰에서 email(subject) 추출 */
+    public String getEmail(String token) {
+        return parseClaims(token).getSubject();
+    }
+
+    /** 필요하면 memberId도 꺼낼 수 있게 */
+    public Long getMemberId(String token) {
+        return parseClaims(token).get("memberId", Number.class).longValue();
+    }
+
+    /** 필요하면 role도 꺼낼 수 있게 */
+    public String getRole(String token) {
+        return parseClaims(token).get("role", String.class);
+    }
+
     public JwtPayload verify(String token) {
-        Claims claims = Jwts.parser()
-                .verifyWith((javax.crypto.SecretKey) key)
-                .build()
-                .parseSignedClaims(token)
-                .getPayload();
+        Claims claims = parseClaims(token);
 
         Long memberId = claims.get("memberId", Number.class).longValue();
         String email = claims.getSubject();
         String role = claims.get("role", String.class);
 
         return new JwtPayload(memberId, email, role);
+    }
+
+    private Claims parseClaims(String token) {
+        return Jwts.parser()
+                .verifyWith((javax.crypto.SecretKey) key)
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
     }
 }

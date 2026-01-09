@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>관리자 - 정책</title>
+  <link rel="stylesheet" th:href="@{/css/app.css}"/>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <div>
+      <div class="brand-text">flow</div>
+      <div class="brand-sub">fileExtension</div>
+    </div>
+  </div>
+  <div class="right">
+    <a class="btn btn-ghost" th:href="@{/}">홈</a>
+    <button class="btn btn-ghost" type="button" onclick="logout()">로그아웃</button>
+  </div>
+</header>
+
+<main class="container">
+  <h2 style="margin:0 0 10px;">정책 관리</h2>
+
+  <div id="msg" class="success" style="display:none; margin-bottom:10px;"></div>
+  <div id="err" class="error" style="display:none; margin-bottom:10px;"></div>
+
+  <!-- Fixed -->
+  <section class="card" style="display:block;">
+    <div class="card-title">고정 확장자</div>
+    <div class="card-desc">체크하면 차단됩니다.</div>
+
+    <div style="margin-top:12px; display:flex; flex-wrap:wrap; gap:10px;">
+      <label th:each="fx : ${fixedList}"
+             style="display:flex; align-items:center; gap:8px; padding:8px 10px; border:1px solid var(--line); border-radius:10px;">
+        <input type="checkbox"
+               th:checked="${fx.blocked}"
+               th:attr="data-id=${fx.id}"
+               onchange="toggleFixed(this)">
+        <span th:text="${fx.extension}">exe</span>
+      </label>
+    </div>
+  </section>
+
+  <!-- Custom (Fixed 아래) -->
+  <section class="card" style="display:block; margin-top:14px;">
+    <div class="card-title" style="display:flex; align-items:center; justify-content:space-between;">
+      <span>커스텀 확장자</span>
+      <span class="muted">총 <b id="custom-count" th:text="${customCount}">0</b> / 200</span>
+    </div>
+    <div class="card-desc">추가된 확장자는 항상 차단됩니다.</div>
+
+    <div style="margin-top:12px; display:flex; gap:10px; align-items:center;">
+      <input id="custom-input" class="input" type="text" placeholder="예) zip (점(.) 없이 영문/숫자)" style="max-width:280px;">
+      <button class="btn btn-primary" type="button" onclick="addCustom()">추가</button>
+    </div>
+
+    <div id="custom-list" style="margin-top:12px; display:flex; flex-wrap:wrap; gap:10px;">
+      <div th:each="cx : ${customList}"
+           th:attr="data-id=${cx.id}"
+           style="display:flex; align-items:center; gap:8px; padding:8px 10px; border:1px solid var(--line); border-radius:10px;">
+        <span th:text="${cx.extension}">zip</span>
+        <button class="btn btn-ghost" type="button" th:attr="data-id=${cx.id}" onclick="deleteCustom(this)">삭제</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Logs -->
+  <section style="margin-top:16px;">
+    <h3 style="margin:0 0 8px;">변경 내역 (최근 20개)</h3>
+    <div class="card" style="display:block;">
+      <div id="log-list"></div>
+    </div>
+  </section>
+</main>
+
+<script>
+  function showMsg(text){
+    const msg = document.getElementById('msg');
+    const err = document.getElementById('err');
+    err.style.display='none';
+    msg.textContent = text;
+    msg.style.display='block';
+  }
+  function showErr(text){
+    const msg = document.getElementById('msg');
+    const err = document.getElementById('err');
+    msg.style.display='none';
+    err.textContent = text;
+    err.style.display='block';
+  }
+
+  function renderLogs(logs) {
+    const container = document.getElementById('log-list');
+    container.innerHTML = '';
+
+    if (!logs || logs.length === 0) {
+      container.innerHTML = `<div class="muted" style="padding:10px 0;">변경 내역이 없습니다.</div>`;
+      return;
+    }
+
+    logs.forEach(log => {
+      const div = document.createElement('div');
+      div.style.padding = '10px 0';
+      div.style.borderBottom = '1px solid var(--line)';
+      div.innerHTML = `
+        <div class="muted">${log.createdAt}</div>
+        <div>
+          <b>${log.action}</b>
+          <span>${log.targetType}</span>
+          <span>${log.extension}</span>
+          <span class="muted">${log.actorEmail || '-'}</span>
+        </div>
+      `;
+      container.appendChild(div);
+    });
+  }
+
+  async function reloadLogs() {
+    const res = await fetch('/api/admin/extensions/logs?limit=20');
+    const json = await res.json();
+    if (json.success) renderLogs(json.data);
+  }
+
+  async function toggleFixed(checkbox){
+    const id = checkbox.dataset.id;
+    const blocked = checkbox.checked;
+
+    const res = await fetch(`/api/admin/extensions/fixed/${id}?blocked=${blocked}`, { method: 'POST' });
+    const json = await res.json();
+
+    if(json.success){
+      showMsg('저장되었습니다.');
+      await reloadLogs();
+    } else {
+      checkbox.checked = !blocked;
+      showErr(json?.error?.message || '실패했습니다.');
+    }
+  }
+
+  function renderCustomCount(n){
+    document.getElementById('custom-count').textContent = String(n);
+  }
+
+  async function reloadCustomCount(){
+    const res = await fetch('/api/admin/extensions/custom/count');
+    const json = await res.json();
+    if(json.success) renderCustomCount(json.data);
+  }
+
+  async function addCustom(){
+    const input = document.getElementById('custom-input');
+    const ext = input.value.trim();
+    if(!ext) return;
+
+    const res = await fetch(`/api/admin/extensions/custom?extension=${encodeURIComponent(ext)}`, { method: 'POST' });
+    const json = await res.json();
+
+    if(json.success){
+      showMsg('추가되었습니다.');
+      input.value = '';
+      location.reload(); // 빠른 마감용: 목록까지 갱신 (원하면 아래처럼 DOM 업데이트로 바꿔줄게)
+    } else {
+      showErr(json?.error?.message || '실패했습니다.');
+    }
+  }
+
+  async function deleteCustom(btn){
+    const id = btn.dataset.id;
+    const res = await fetch(`/api/admin/extensions/custom/${id}`, { method: 'DELETE' });
+    const json = await res.json();
+
+    if(json.success){
+      showMsg('삭제되었습니다.');
+      location.reload(); // 빠른 마감용
+    } else {
+      showErr(json?.error?.message || '실패했습니다.');
+    }
+  }
+
+  async function logout(){
+    const res = await fetch('/api/auth/logout', { method:'POST' });
+    const json = await res.json();
+    if(json.success) location.href='/';
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    // 초기 로그는 SSR이 아니라 JS로 통일 (안전)
+    reloadLogs();
+  });
+</script>
+</body>
+</html>
