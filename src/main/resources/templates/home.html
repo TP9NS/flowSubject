@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>fileExtension</title>
+  <link rel="stylesheet" th:href="@{/css/app.css}"/>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <span class="brand-badge">f</span>
+    <div>
+      <div class="brand-text">flow</div>
+      <div class="brand-sub">fileExtension</div>
+    </div>
+  </div>
+
+  <div class="right">
+    <span class="muted" th:if="${loggedIn}" th:text="${email}">user@email.com</span>
+
+    <div th:if="${!loggedIn}">
+      <a class="btn btn-ghost" th:href="@{/auth/login}">로그인</a>
+      <a class="btn btn-primary" th:href="@{/auth/signup}">회원가입</a>
+    </div>
+
+    <form th:if="${loggedIn}" th:action="@{/auth/logout}" method="post">
+      <button class="btn btn-ghost" type="submit">로그아웃</button>
+    </form>
+  </div>
+</header>
+
+<main class="container">
+  <section>
+    <h1 style="margin:0 0 6px; letter-spacing:-.3px;">파일 확장자 차단 과제</h1>
+    <p class="muted" style="margin:0;">필요한 기능만 빠르게 접근할 수 있도록 구성했습니다.</p>
+  </section>
+
+  <section class="grid">
+    <a class="card" th:href="@{/user/files}">
+      <div class="card-title">사용자</div>
+      <div class="card-desc">파일 업로드 + 내가 업로드한 파일 보기</div>
+    </a>
+
+    <a class="card" th:href="@{/admin}">
+      <div class="card-title">관리자</div>
+      <div class="card-desc">정책 관리 + 정책 변경 내역</div>
+    </a>
+
+    <a class="card" th:href="@{/admin/files}">
+      <div class="card-title">전체 파일 조회</div>
+      <div class="card-desc">전체 업로드 파일 목록 보기</div>
+    </a>
+  </section>
+
+  <div class="muted" style="margin-top:14px;" th:if="${!loggedIn}">
+    일부 기능은 로그인 후 이용 가능합니다.
+  </div>
+</main>
+</body>
+</html>

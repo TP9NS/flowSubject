@@ -35,3 +35,14 @@ out/
 
 ### VS Code ###
 .vscode/
+
+### Env / secrets
+.env
+*.env
+
+### Spring profile
+src/main/resources/application-prod.properties
+
+### Local upload
+uploads/
+**/uploads/
