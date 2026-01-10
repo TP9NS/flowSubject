@@ -41,7 +41,8 @@ out/
 *.env
 
 ### Spring profile
-src/main/resources/application-prod.properties
+#src/main/resources/application-prod.properties
+#env로 분리
 
 ### Local upload
 uploads/
