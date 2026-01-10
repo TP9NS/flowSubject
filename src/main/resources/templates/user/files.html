@@ -31,29 +31,32 @@
         <div class="card-desc">차단된 확장자는 업로드할 수 없습니다.</div>
 
         <div style="margin-top:12px; display:flex; gap:10px; align-items:center;">
-            <input id="fileInput" class="input" type="file" />
+            <input id="fileInput" class="input" type="file"/>
             <button class="btn btn-primary" type="button" onclick="upload()">업로드</button>
         </div>
+        <div class="muted" style="margin-top:8px;">3개씩 페이징(테스트용)</div>
     </section>
 
     <section style="margin-top:16px;">
         <h3 style="margin:0 0 8px;">내가 업로드한 파일</h3>
-        <div class="card" style="display:block;">
-            <div th:if="${#lists.isEmpty(files)}" class="muted" style="padding:10px 0;">업로드한 파일이 없습니다.</div>
 
-            <div th:each="f : ${files}" style="padding:10px 0; border-bottom:1px solid var(--line);">
-                <div><b th:text="${f.originalFileName}">name</b></div>
-                <div class="muted">
-                    ext: <span th:text="${f.extension}">txt</span> /
-                    size: <span th:text="${f.sizeBytes}">0</span> bytes /
-                    at: <span th:text="${f.uploadedAt}">time</span>
-                </div>
-            </div>
+        <div class="card" style="display:block;">
+            <div id="list" class="muted" style="padding:10px 0;">로딩중...</div>
+        </div>
+
+        <div style="display:flex; gap:8px; margin-top:12px; align-items:center;">
+            <button class="btn btn-ghost" id="prevBtn" type="button" onclick="prev()">이전</button>
+            <span class="muted" id="pageInfo">1 / 1</span>
+            <button class="btn btn-ghost" id="nextBtn" type="button" onclick="next()">다음</button>
         </div>
     </section>
 </main>
 
 <script>
+    let curPage = 0;
+    const size = 3;
+    let totalPages = 1;
+
     function showMsg(text){
       const msg = document.getElementById('msg');
       const err = document.getElementById('err');
@@ -68,6 +71,74 @@
       err.textContent = text;
       err.style.display='block';
     }
+    function hideErr(){
+      document.getElementById('err').style.display='none';
+    }
+
+    async function reloadList(page){
+      hideErr();
+      curPage = page;
+
+      const qs = new URLSearchParams();
+      qs.set('page', String(curPage));
+      qs.set('size', String(size));
+
+      const res = await fetch('/api/user/files?' + qs.toString());
+      const json = await res.json();
+
+      if(!json.success){
+        showErr(json?.error?.message || '조회 실패');
+        return;
+      }
+
+      const data = json.data; // PageResponseDto
+      totalPages = (data.totalPages === 0 ? 1 : data.totalPages);
+
+      document.getElementById('pageInfo').textContent = `${data.number + 1} / ${totalPages}`;
+      document.getElementById('prevBtn').disabled = data.first;
+      document.getElementById('nextBtn').disabled = data.last;
+
+      renderList(data.content || []);
+    }
+
+    function renderList(items){
+      const list = document.getElementById('list');
+      list.classList.remove('muted');
+      list.innerHTML = '';
+
+      if(items.length === 0){
+        list.classList.add('muted');
+        list.textContent = '업로드한 파일이 없습니다.';
+        return;
+      }
+
+      items.forEach(f => {
+        const row = document.createElement('div');
+        row.style.padding = '10px 0';
+        row.style.borderBottom = '1px solid var(--line)';
+        row.style.display = 'flex';
+        row.style.justifyContent = 'space-between';
+        row.style.gap = '12px';
+
+        row.innerHTML = `
+          <div>
+            <div><b>${escapeHtml(f.originalFileName)}</b></div>
+            <div class="muted">
+              ext: ${escapeHtml(f.extension || '')} /
+              size: ${f.sizeBytes} bytes /
+              at: ${escapeHtml(f.uploadedAt || '')}
+            </div>
+          </div>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <a class="btn btn-ghost" href="/api/user/files/${f.id}/download">다운로드</a>
+            <button class="btn btn-ghost" type="button" data-id="${f.id}">삭제</button>
+          </div>
+        `;
+
+        row.querySelector('button').addEventListener('click', () => deleteMyFile(f.id));
+        list.appendChild(row);
+      });
+    }
 
     async function upload(){
       const input = document.getElementById('fileInput');
@@ -75,22 +146,28 @@
         showErr('파일을 선택해 주세요.');
         return;
       }
-
       const fd = new FormData();
       fd.append('file', input.files[0]);
 
-      const res = await fetch('/api/user/files', {
-        method: 'POST',
-        body: fd
-      });
+      const res = await fetch('/api/user/files', { method:'POST', body: fd });
       const json = await res.json();
 
       if(json.success){
         showMsg('업로드 성공!');
-        location.reload(); // 빠른 마감용
+        input.value = '';
+        reloadList(0);
       } else {
         showErr(json?.error?.message || '업로드 실패');
       }
+    }
+
+    async function deleteMyFile(id){
+      if(!confirm('정말 삭제할까요?')) return;
+
+      const res = await fetch(`/api/user/files/${id}`, { method:'DELETE' });
+      const json = await res.json();
+      if(json.success) reloadList(curPage);
+      else alert(json?.error?.message || '삭제 실패');
     }
 
     async function logout(){
@@ -98,6 +175,21 @@
       const json = await res.json();
       if(json.success) location.href='/';
     }
+
+    function prev(){
+      if(curPage > 0) reloadList(curPage - 1);
+    }
+    function next(){
+      if(curPage + 1 < totalPages) reloadList(curPage + 1);
+    }
+
+    function escapeHtml(str){
+      return String(str).replace(/[&<>"']/g, s => ({
+        '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+      }[s]));
+    }
+
+    reloadList(0);
 </script>
 </body>
 </html>

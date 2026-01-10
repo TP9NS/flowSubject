@@ -21,8 +21,11 @@ public enum ErrorCode {
     CUSTOM_LIMIT_EXCEEDED(HttpStatus.BAD_REQUEST, "CUSTOM_LIMIT_EXCEEDED", "커스텀 확장자는 최대 200개까지 등록할 수 있습니다."),
     CUSTOM_DUPLICATED(HttpStatus.CONFLICT, "CUSTOM_DUPLICATED", "이미 등록된 확장자입니다."),
     EXTENSION_INVALID(HttpStatus.BAD_REQUEST, "EXTENSION_INVALID", "확장자 형식이 올바르지 않습니다."),
-    BLOCKED_EXTENSION(HttpStatus.BAD_REQUEST, "BLOCKED_EXTENSION", "허락되지 않은 확장자입니다.");
+    BLOCKED_EXTENSION(HttpStatus.BAD_REQUEST, "BLOCKED_EXTENSION", "허락되지 않은 확장자입니다."),
 
+    //File
+    FORBIDDEN(HttpStatus.BAD_REQUEST, "FORBIDDEN", "허락되지 않은 파일입니다."),
+    NOT_FOUND(HttpStatus.NOT_FOUND, "NOT_FOUND", "파일을 찾지 못했습니다.");
     private final HttpStatus status;
     private final String code;
     private final String message;

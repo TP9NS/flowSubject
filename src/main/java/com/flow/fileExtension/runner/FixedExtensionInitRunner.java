@@ -1,4 +1,4 @@
-package com.flow.fileExtension.extension.init;
+package com.flow.fileExtension.runner;
 
 import com.flow.fileExtension.extension.entity.FixedExtension;
 import com.flow.fileExtension.extension.repository.FixedExtensionRepository;
@@ -15,7 +15,6 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Component
-@Profile("dev")
 @RequiredArgsConstructor
 public class FixedExtensionInitRunner implements CommandLineRunner {
 

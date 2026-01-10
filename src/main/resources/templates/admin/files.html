@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>관리자 - 전체 파일</title>
+  <link rel="stylesheet" th:href="@{/css/app.css}"/>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <div>
+      <div class="brand-text">flow</div>
+      <div class="brand-sub">fileExtension</div>
+    </div>
+  </div>
+  <div class="right">
+    <a class="btn btn-ghost" th:href="@{/}">홈</a>
+    <a class="btn btn-ghost" th:href="@{/admin}">정책</a>
+  </div>
+</header>
+
+<main class="container">
+  <h2 style="margin:0 0 10px;">전체 파일 조회</h2>
+
+  <section class="card" style="display:block;">
+    <div class="card-title">확장자 검색</div>
+    <div style="margin-top:10px; display:flex; gap:10px; align-items:center;">
+      <input class="input" id="extInput" type="text" placeholder="예: png" style="max-width:200px;">
+      <button class="btn btn-primary" type="button" onclick="reloadList(0)">검색</button>
+      <button class="btn btn-ghost" type="button" onclick="resetSearch()">초기화</button>
+    </div>
+    <div class="muted" style="margin-top:8px;">20개씩 페이징됩니다.</div>
+  </section>
+
+  <section style="margin-top:14px;">
+    <div id="err" class="error" style="display:none; margin-bottom:10px;"></div>
+
+    <div class="card" style="display:block;">
+      <div id="list" class="muted" style="padding:10px 0;">로딩중...</div>
+    </div>
+
+    <div style="display:flex; gap:8px; margin-top:12px; align-items:center;">
+      <button class="btn btn-ghost" id="prevBtn" type="button" onclick="prev()">이전</button>
+      <span class="muted" id="pageInfo">1 / 1</span>
+      <button class="btn btn-ghost" id="nextBtn" type="button" onclick="next()">다음</button>
+    </div>
+  </section>
+</main>
+
+<script>
+  let curPage = 0;
+  const size = 3;
+  let totalPages = 1;
+
+  const prevBtn = document.getElementById('prevBtn');
+  const nextBtn = document.getElementById('nextBtn');
+
+  function showErr(msg){
+    const el = document.getElementById('err');
+    el.textContent = msg;
+    el.style.display = 'block';
+  }
+  function hideErr(){
+    document.getElementById('err').style.display = 'none';
+  }
+
+  function normExt(v){
+    v = (v || '').trim().toLowerCase();
+    if(v.startsWith('.')) v = v.slice(1);
+    return v;
+  }
+
+  async function reloadList(page){
+    hideErr();
+    curPage = Math.max(page, 0);
+
+    const ext = normExt(document.getElementById('extInput').value);
+    const qs = new URLSearchParams();
+    qs.set('page', String(curPage));
+    qs.set('size', String(size));
+    if(ext) qs.set('ext', ext);
+
+    const url = '/api/admin/files?' + qs.toString();
+    console.log('[reloadList]', url); // ✅ 요청 확인
+
+    const res = await fetch(url);
+    const json = await res.json();
+
+    if(!json.success){
+      showErr(json?.error?.message || '조회 실패');
+      return;
+    }
+
+    const data = json.data; // PageResponseDto or Page
+    totalPages = (data.totalPages === 0 ? 1 : data.totalPages);
+
+    document.getElementById('pageInfo').textContent = `${data.number + 1} / ${totalPages}`;
+
+    // ✅ 여기 고침 (반대로 되어있던 부분)
+    prevBtn.disabled = data.first;
+    nextBtn.disabled = data.last;
+
+    renderList(data.content || []);
+  }
+
+  function renderList(items){
+    const list = document.getElementById('list');
+    list.classList.remove('muted');
+    list.innerHTML = '';
+
+    if(items.length === 0){
+      list.classList.add('muted');
+      list.textContent = '데이터가 없습니다.';
+      return;
+    }
+
+    items.forEach(f => {
+      const row = document.createElement('div');
+      row.style.padding = '10px 0';
+      row.style.borderBottom = '1px solid var(--line)';
+      row.style.display = 'flex';
+      row.style.justifyContent = 'space-between';
+      row.style.gap = '12px';
+
+      row.innerHTML = `
+        <div>
+          <div>
+            <b>${escapeHtml(f.originalFileName)}</b>
+            <span class="muted">(${escapeHtml(f.extension || '')})</span>
+          </div>
+          <div class="muted">
+            uploader: ${escapeHtml(f.uploaderEmail || '-')} /
+            size: ${f.sizeBytes} /
+            at: ${escapeHtml(f.uploadedAt || '')}
+          </div>
+        </div>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <a class="btn btn-ghost" href="/api/admin/files/${f.id}/download">다운로드</a>
+          <button class="btn btn-ghost" type="button">삭제</button>
+        </div>
+      `;
+
+      row.querySelector('button').addEventListener('click', () => adminDelete(f.id));
+      list.appendChild(row);
+    });
+  }
+
+  async function adminDelete(id){
+    if(!confirm('정말 삭제할까요?')) return;
+
+    const res = await fetch(`/api/admin/files/${id}`, { method:'DELETE' });
+    const json = await res.json();
+    if(json.success) reloadList(curPage);
+    else alert(json?.error?.message || '삭제 실패');
+  }
+
+  function prev(){
+    if(curPage > 0) reloadList(curPage - 1);
+  }
+  function next(){
+    if(curPage + 1 < totalPages) reloadList(curPage + 1);
+  }
+  function resetSearch(){
+    document.getElementById('extInput').value = '';
+    reloadList(0);
+  }
+
+  function escapeHtml(str){
+    return String(str).replace(/[&<>"']/g, s => ({
+      '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+    }[s]));
+  }
+
+  reloadList(0);
+</script>
+</body>
+</html>

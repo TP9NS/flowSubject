@@ -21,7 +21,7 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 @Transactional
-public class FileService {
+public class FileUploadService {
 
     private final FileUploadRepository fileUploadRepository;
     private final MemberRepository memberRepository;
@@ -52,7 +52,7 @@ public class FileService {
             Files.createDirectories(uploadPath);
 
             String stored = UUID.randomUUID() + "_" + sanitize(original);
-            Path target = Path.of(uploadDir, stored);
+            Path target = uploadPath.resolve(stored);
 
             file.transferTo(target.toFile());
 
@@ -77,16 +77,6 @@ public class FileService {
     // Windows 파일명 금지문자 방어
     private String sanitize(String name) {
         return name.replaceAll("[\\\\/:*?\"<>|]", "_");
-    }
-
-    @Transactional(readOnly = true)
-    public List<FileUpload> myFiles(String email) {
-        return fileUploadRepository.findMyFiles(email);
-    }
-
-    @Transactional(readOnly = true)
-    public List<FileUpload> allFiles() {
-        return fileUploadRepository.findAllWithUploader();
     }
 
     private String extractExtension(String filename) {
