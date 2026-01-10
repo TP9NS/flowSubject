@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>사용자 - 파일</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}"/>
+</head>
+<body>
+<header class="topbar">
+    <div class="brand">
+        <div>
+            <div class="brand-text">flow</div>
+            <div class="brand-sub">fileExtension</div>
+        </div>
+    </div>
+    <div class="right">
+        <a class="btn btn-ghost" th:href="@{/}">홈</a>
+        <button class="btn btn-ghost" type="button" onclick="logout()">로그아웃</button>
+    </div>
+</header>
+
+<main class="container">
+    <h2 style="margin:0 0 10px;">파일 업로드</h2>
+
+    <div id="msg" class="success" style="display:none; margin-bottom:10px;"></div>
+    <div id="err" class="error" style="display:none; margin-bottom:10px;"></div>
+
+    <section class="card" style="display:block;">
+        <div class="card-title">업로드</div>
+        <div class="card-desc">차단된 확장자는 업로드할 수 없습니다.</div>
+
+        <div style="margin-top:12px; display:flex; gap:10px; align-items:center;">
+            <input id="fileInput" class="input" type="file" />
+            <button class="btn btn-primary" type="button" onclick="upload()">업로드</button>
+        </div>
+    </section>
+
+    <section style="margin-top:16px;">
+        <h3 style="margin:0 0 8px;">내가 업로드한 파일</h3>
+        <div class="card" style="display:block;">
+            <div th:if="${#lists.isEmpty(files)}" class="muted" style="padding:10px 0;">업로드한 파일이 없습니다.</div>
+
+            <div th:each="f : ${files}" style="padding:10px 0; border-bottom:1px solid var(--line);">
+                <div><b th:text="${f.originalFileName}">name</b></div>
+                <div class="muted">
+                    ext: <span th:text="${f.extension}">txt</span> /
+                    size: <span th:text="${f.sizeBytes}">0</span> bytes /
+                    at: <span th:text="${f.uploadedAt}">time</span>
+                </div>
+            </div>
+        </div>
+    </section>
+</main>
+
+<script>
+    function showMsg(text){
+      const msg = document.getElementById('msg');
+      const err = document.getElementById('err');
+      err.style.display='none';
+      msg.textContent = text;
+      msg.style.display='block';
+    }
+    function showErr(text){
+      const msg = document.getElementById('msg');
+      const err = document.getElementById('err');
+      msg.style.display='none';
+      err.textContent = text;
+      err.style.display='block';
+    }
+
+    async function upload(){
+      const input = document.getElementById('fileInput');
+      if(!input.files || input.files.length === 0){
+        showErr('파일을 선택해 주세요.');
+        return;
+      }
+
+      const fd = new FormData();
+      fd.append('file', input.files[0]);
+
+      const res = await fetch('/api/user/files', {
+        method: 'POST',
+        body: fd
+      });
+      const json = await res.json();
+
+      if(json.success){
+        showMsg('업로드 성공!');
+        location.reload(); // 빠른 마감용
+      } else {
+        showErr(json?.error?.message || '업로드 실패');
+      }
+    }
+
+    async function logout(){
+      const res = await fetch('/api/auth/logout', { method:'POST' });
+      const json = await res.json();
+      if(json.success) location.href='/';
+    }
+</script>
+</body>
+</html>
