@@ -66,11 +66,18 @@
     </div>
   </section>
 
-  <!-- Logs -->
+  <!-- Logs (페이징) -->
   <section style="margin-top:16px;">
-    <h3 style="margin:0 0 8px;">변경 내역 (최근 20개)</h3>
+    <h3 style="margin:0 0 8px;">변경 내역</h3>
+
     <div class="card" style="display:block;">
-      <div id="log-list"></div>
+      <div id="log-list" class="muted" style="padding:10px 0;">로딩중...</div>
+    </div>
+
+    <div style="display:flex; gap:8px; margin-top:12px; align-items:center;">
+      <button class="btn btn-ghost" id="logPrevBtn" type="button" onclick="logPrev()">이전</button>
+      <span class="muted" id="logPageInfo">1 / 1</span>
+      <button class="btn btn-ghost" id="logNextBtn" type="button" onclick="logNext()">다음</button>
     </div>
   </section>
 </main>
@@ -91,16 +98,22 @@
     err.style.display='block';
   }
 
-  function renderLogs(logs) {
+  let logCurPage = 0;
+  const logSize = 10;
+  let logTotalPages = 1;
+
+  function renderLogs(items) {
     const container = document.getElementById('log-list');
+    container.classList.remove('muted');
     container.innerHTML = '';
 
-    if (!logs || logs.length === 0) {
-      container.innerHTML = `<div class="muted" style="padding:10px 0;">변경 내역이 없습니다.</div>`;
+    if (!items || items.length === 0) {
+      container.classList.add('muted');
+      container.textContent = '변경 내역이 없습니다.';
       return;
     }
 
-    logs.forEach(log => {
+    items.forEach(log => {
       const div = document.createElement('div');
       div.style.padding = '10px 0';
       div.style.borderBottom = '1px solid var(--line)';
@@ -117,10 +130,37 @@
     });
   }
 
-  async function reloadLogs() {
-    const res = await fetch('/api/admin/extensions/logs?limit=20');
+  async function reloadLogs(page){
+    logCurPage = Math.max(page, 0);
+
+    const qs = new URLSearchParams();
+    qs.set('page', String(logCurPage));
+    qs.set('size', String(logSize));
+
+    const res = await fetch('/api/admin/extensions/logs?' + qs.toString());
     const json = await res.json();
-    if (json.success) renderLogs(json.data);
+
+    if(!json.success){
+      showErr(json?.error?.message || '로그 조회 실패');
+      return;
+    }
+
+    const data = json.data; // PageResponseDto<LogResponse>
+    logTotalPages = (data.totalPages === 0 ? 1 : data.totalPages);
+
+    document.getElementById('logPageInfo').textContent = `${data.number + 1} / ${logTotalPages}`;
+    document.getElementById('logPrevBtn').disabled = data.first;
+    document.getElementById('logNextBtn').disabled = data.last;
+
+    renderLogs(data.content || []);
+  }
+
+  function logPrev(){
+    if(logCurPage > 0) reloadLogs(logCurPage - 1);
+  }
+
+  function logNext(){
+    if(logCurPage + 1 < logTotalPages) reloadLogs(logCurPage + 1);
   }
 
   async function toggleFixed(checkbox){
@@ -132,7 +172,7 @@
 
     if(json.success){
       showMsg('저장되었습니다.');
-      await reloadLogs();
+      await reloadLogs(0); // 최신 로그는 첫 페이지
     } else {
       checkbox.checked = !blocked;
       showErr(json?.error?.message || '실패했습니다.');
@@ -160,7 +200,7 @@
     if(json.success){
       showMsg('추가되었습니다.');
       input.value = '';
-      location.reload(); // 빠른 마감용: 목록까지 갱신 (원하면 아래처럼 DOM 업데이트로 바꿔줄게)
+      location.reload(); // 목록까지 갱신
     } else {
       showErr(json?.error?.message || '실패했습니다.');
     }
@@ -173,7 +213,7 @@
 
     if(json.success){
       showMsg('삭제되었습니다.');
-      location.reload(); // 빠른 마감용
+      location.reload(); // 목록 갱신
     } else {
       showErr(json?.error?.message || '실패했습니다.');
     }
@@ -186,8 +226,7 @@
   }
 
   document.addEventListener('DOMContentLoaded', () => {
-    // 초기 로그는 SSR이 아니라 JS로 통일 (안전)
-    reloadLogs();
+    reloadLogs(0);
   });
 </script>
 </body>

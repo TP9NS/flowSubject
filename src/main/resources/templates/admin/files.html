@@ -30,7 +30,6 @@
       <button class="btn btn-primary" type="button" onclick="reloadList(0)">검색</button>
       <button class="btn btn-ghost" type="button" onclick="resetSearch()">초기화</button>
     </div>
-    <div class="muted" style="margin-top:8px;">20개씩 페이징됩니다.</div>
   </section>
 
   <section style="margin-top:14px;">
@@ -82,7 +81,7 @@
     if(ext) qs.set('ext', ext);
 
     const url = '/api/admin/files?' + qs.toString();
-    console.log('[reloadList]', url); // ✅ 요청 확인
+    console.log('[reloadList]', url); // 요청 확인
 
     const res = await fetch(url);
     const json = await res.json();
@@ -97,7 +96,7 @@
 
     document.getElementById('pageInfo').textContent = `${data.number + 1} / ${totalPages}`;
 
-    // ✅ 여기 고침 (반대로 되어있던 부분)
+
     prevBtn.disabled = data.first;
     nextBtn.disabled = data.last;
 

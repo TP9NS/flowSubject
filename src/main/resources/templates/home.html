@@ -43,18 +43,18 @@
     </a>
 
     <a class="card" th:href="@{/admin}">
-      <div class="card-title">관리자</div>
+      <div class="card-title">파일 확장자 관리(관리자)</div>
       <div class="card-desc">정책 관리 + 정책 변경 내역</div>
     </a>
 
     <a class="card" th:href="@{/admin/files}">
-      <div class="card-title">전체 파일 조회</div>
+      <div class="card-title">전체 파일 조회(관리자)</div>
       <div class="card-desc">전체 업로드 파일 목록 보기</div>
     </a>
   </section>
 
   <div class="muted" style="margin-top:14px;" th:if="${!loggedIn}">
-    일부 기능은 로그인 후 이용 가능합니다.
+    기능 사용은 로그인 후 이용 가능합니다.
   </div>
 </main>
 </body>

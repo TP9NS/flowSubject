@@ -20,12 +20,12 @@ public class AdminPageController {
     private final CustomExtensionRepository customRepo;
     private final LogService logService;
     private final FileQueryService fileQueryService;
+
     @GetMapping("/admin")
     public String admin(Model model) {
         model.addAttribute("fixedList", fixedRepo.findAllByOrderByExtensionAsc());
         model.addAttribute("customList", customRepo.findAllByOrderByCreatedAtDesc());
         model.addAttribute("customCount", customRepo.count());
-        model.addAttribute("logs", logService.latest(20));
         return "admin/admin";
     }
 

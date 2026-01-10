@@ -37,14 +37,26 @@ public class FixedExtensionInitRunner implements CommandLineRunner {
                             .build()
             );
         }
-        String adminEmail = "a@a.com";
+        String adminEmail = "admin@admin.com";
         if (!memberRepository.existsByEmail(adminEmail)) {
             memberRepository.save(
                     Member.builder()
                             .email(adminEmail)
-                            .name("asdasd")
-                            .password(passwordEncoder.encode("asdasd"))
+                            .name("admin")
+                            .password(passwordEncoder.encode("admin123"))
                             .role(Role.ADMIN)
+                            .createdAt(LocalDateTime.now())
+                            .build()
+            );
+        }
+        String userEmail = "user@user.com";
+        if (!memberRepository.existsByEmail(userEmail)) {
+            memberRepository.save(
+                    Member.builder()
+                            .email(userEmail)
+                            .name("user")
+                            .password(passwordEncoder.encode("user123"))
+                            .role(Role.USER)
                             .createdAt(LocalDateTime.now())
                             .build()
             );
