@@ -9,11 +9,11 @@ import org.springframework.context.annotation.Configuration;
 public class SwaggerConfig {
 
     @Bean
-    public OpenAPI holidayKeeperAPI() {
+    public OpenAPI FileExtensionAPI() {
         return new OpenAPI()
                 .info(new Info()
-                        .title("HolidayKeeper API")
-                        .description("PlanitSquare 채용 과제 HolidayKeeper API 문서")
+                        .title("File Extension API")
+                        .description("마드라스체크 채용 과제")
                         .version("v1.0.0"));
     }
 }
